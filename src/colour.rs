@@ -1,9 +1,16 @@
+use crate::utils::clamp;
 use crate::vec3::Colour;
 
-pub fn write_colour(pixel_colour: Colour) {
-    let x = (255.999 * pixel_colour.x()) as i64;
-    let y = (255.999 * pixel_colour.y()) as i64;
-    let z = (255.999 * pixel_colour.z()) as i64;
+pub fn write_colour(pixel_colour: Colour, samples_per_pixel: i32) {
+    let scale = 1.0 / samples_per_pixel as f64;
+    let r = (scale * pixel_colour.x()).sqrt();
+    let g = (scale * pixel_colour.y()).sqrt();
+    let b = (scale * pixel_colour.z()).sqrt();
 
-    println!("{} {} {}", x, y, z)
+    println!(
+        "{} {} {}",
+        (256. * clamp(r, 0.0, 0.999)) as i32,
+        (256. * clamp(g, 0.0, 0.999)) as i32,
+        (256. * clamp(b, 0.0, 0.999)) as i32
+    )
 }

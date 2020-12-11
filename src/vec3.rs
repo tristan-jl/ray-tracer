@@ -1,6 +1,7 @@
+use crate::utils::random_f64;
 use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub};
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Vec3 {
     pub e: [f64; 3],
 }
@@ -26,9 +27,51 @@ impl Vec3 {
     pub fn length(&self) -> f64 {
         self.squared().sqrt()
     }
-
     pub fn squared(&self) -> f64 {
         dot(*self, *self)
+    }
+    pub fn unit_vector(&self) -> Self {
+        unit_vector(*self)
+    }
+
+    pub fn random(min: f64, max: f64) -> Self {
+        Self::from(
+            random_f64(min, max),
+            random_f64(min, max),
+            random_f64(min, max),
+        )
+    }
+    pub fn random_in_unit_sphere() -> Self {
+        loop {
+            let p = Self::random(-1., 1.);
+            if p.squared() < 1. {
+                return p;
+            };
+        }
+    }
+    pub fn random_unit_vector() -> Self {
+        Self::random_in_unit_sphere().unit_vector()
+    }
+    pub fn random_in_hemisphere(normal: Self) -> Self {
+        let in_unit_sphere = Self::random_in_unit_sphere();
+        if dot(in_unit_sphere, normal) > 0. {
+            in_unit_sphere
+        } else {
+            -in_unit_sphere
+        }
+    }
+    pub fn random_in_unit_disk() -> Self {
+        loop {
+            let p = Self::from(random_f64(-1., 1.), random_f64(-1., 1.), 0.);
+            if p.squared() < 1. {
+                return p;
+            };
+        }
+    }
+
+    pub fn near_zero(&self) -> bool {
+        let s: f64 = 1e-8;
+        (self.e[0].abs() < s) && (self.e[1].abs() < s) && (self.e[2].abs() < s)
     }
 }
 
@@ -160,6 +203,13 @@ pub fn unit_vector(v: Vec3) -> Vec3 {
 
 pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
     v - n * (2. * dot(v, n))
+}
+pub fn refract(uv: Vec3, n: Vec3, etai_over_etat: f64) -> Vec3 {
+    let cos_theta = dot(-uv, n).min(1.);
+    let r_out_perp = (n * cos_theta + uv) * etai_over_etat;
+    let r_out_parallel = n * -((1.0 - r_out_perp.squared()).abs()).sqrt();
+
+    r_out_perp + r_out_parallel
 }
 
 pub type Point3 = Vec3;

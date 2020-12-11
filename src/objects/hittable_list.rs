@@ -1,4 +1,7 @@
-use crate::{objects::hittable::{Hittable, HitRecord}, ray::Ray};
+use crate::{
+    objects::hittable::{HitRecord, Hittable},
+    ray::Ray,
+};
 use std::rc::Rc;
 
 pub struct HittableList {
@@ -19,7 +22,7 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+    fn hit(&self, r: Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
         let mut temp_rec = HitRecord::new();
         let mut hit_anything = false;
         let mut closest_so_far = t_max;
