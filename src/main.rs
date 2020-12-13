@@ -14,7 +14,8 @@ use objects::{
     sphere::Sphere,
 };
 use ray::Ray;
-use std::rc::Rc;
+use std::io::prelude::*;
+use std::{fs::File, rc::Rc};
 use utils::{random_f64, INFINITY};
 use vec3::{unit_vector, Colour, Point3, Vec3};
 
@@ -109,9 +110,9 @@ fn random_scene() -> HittableList {
 
 fn main() {
     const ASPECT_RATIO: f64 = 3. / 2.;
-    const IMAGE_WIDTH: i32 = 1200;
+    const IMAGE_WIDTH: i32 = 120;
     const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
-    const SAMPLES_PER_PIXEL: i32 = 500;
+    const SAMPLES_PER_PIXEL: i32 = 3;
     const MAX_DEPTH: i32 = 50;
 
     let world = random_scene();
@@ -125,20 +126,22 @@ fn main() {
         10.,
     );
 
-    println!("P3\n{} {}\n255", IMAGE_WIDTH, IMAGE_HEIGHT);
+    let mut file = File::create("result/result.ppm").expect("Unable to create file");
+    write!(file, "P3\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT).expect("Unable to write to file");
 
-    for j in (0..IMAGE_HEIGHT).rev() {
-        eprint!("\rScanlines remaining: {} ", j);
-        for i in 0..IMAGE_WIDTH {
+    for row_num in (0..IMAGE_HEIGHT).rev() {
+        eprint!("\rRows remaining: {}/{} ", row_num, IMAGE_HEIGHT);
+        for pixel_num in 0..IMAGE_WIDTH {
             let mut pixel_colour = Colour::new();
             for _ in 0..SAMPLES_PER_PIXEL {
-                let u = (i as f64 + random_f64(0., 1.)) / (IMAGE_WIDTH - 1) as f64;
-                let v = (j as f64 + random_f64(0., 1.)) / (IMAGE_HEIGHT - 1) as f64;
+                let u = (pixel_num as f64 + random_f64(0., 1.)) / (IMAGE_WIDTH - 1) as f64;
+                let v = (row_num as f64 + random_f64(0., 1.)) / (IMAGE_HEIGHT - 1) as f64;
                 let r = camera.get_ray(u, v);
                 pixel_colour += ray_colour(r, &world, MAX_DEPTH);
             }
 
-            colour::write_colour(pixel_colour, SAMPLES_PER_PIXEL);
+            let (r, g, b) = colour::rescale_colour(pixel_colour, SAMPLES_PER_PIXEL);
+            write!(file, "{} {} {}", r, g, b).expect("Unable to write to file");
         }
     }
     eprintln!("\nDone.\n")
