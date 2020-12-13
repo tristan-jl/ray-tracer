@@ -1,5 +1,4 @@
-use crate::utils::clamp;
-use crate::vec3::Colour;
+use crate::{utils::clamp, vec3::Colour};
 
 pub fn write_colour(pixel_colour: Colour, samples_per_pixel: i32) {
     let scale = 1.0 / samples_per_pixel as f64;

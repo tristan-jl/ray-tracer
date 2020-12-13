@@ -6,9 +6,8 @@ mod ray;
 mod utils;
 mod vec3;
 
-use crate::material::material::Material;
 use camera::Camera;
-use material::material::{Dielectric, Lambertian, Metal};
+use material::material::{Dielectric, Lambertian, Material, Metal};
 use objects::{
     hittable::{HitRecord, Hittable},
     hittable_list::HittableList,
