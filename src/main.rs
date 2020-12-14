@@ -130,20 +130,20 @@ fn main() {
     write!(file, "P3\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT).expect("Unable to write to file");
 
     fn calculate_pixel_colour(camera: &Camera, world: &impl Hittable, i: i32, j: i32) -> Colour {
-        let mut pixel_colour = Colour::new();
-        for _ in 0..SAMPLES_PER_PIXEL {
-            let u = (i as f64 + random_f64(0., 1.)) / (IMAGE_WIDTH - 1) as f64;
-            let v = (j as f64 + random_f64(0., 1.)) / (IMAGE_HEIGHT - 1) as f64;
-            let r = camera.get_ray(u, v);
-            pixel_colour += ray_colour(r, world, MAX_DEPTH);
-        }
-        pixel_colour
+        let u = (i as f64 + random_f64(0., 1.)) / (IMAGE_WIDTH - 1) as f64;
+        let v = (j as f64 + random_f64(0., 1.)) / (IMAGE_HEIGHT - 1) as f64;
+        let r = camera.get_ray(u, v);
+
+        ray_colour(r, world, MAX_DEPTH)
     }
 
     for row_num in (0..IMAGE_HEIGHT).rev() {
         eprint!("\rRows remaining: {}/{} ", IMAGE_HEIGHT - row_num, IMAGE_HEIGHT);
         for pixel_num in 0..IMAGE_WIDTH {
-            let pixel_colour = calculate_pixel_colour(&camera, &world, pixel_num, row_num);
+            let mut pixel_colour = Colour::new();
+            for _ in 0..SAMPLES_PER_PIXEL {
+                pixel_colour += calculate_pixel_colour(&camera, &world, pixel_num, row_num);
+            }
 
             let (r, g, b) = colour::rescale_colour(pixel_colour, SAMPLES_PER_PIXEL);
             write!(file, "{} {} {}\n", r, g, b).expect("Unable to write to file");
