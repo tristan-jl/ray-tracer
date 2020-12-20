@@ -1,5 +1,8 @@
 use crate::utils::random_f64;
-use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub};
+use std::{
+    iter::Sum,
+    ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub},
+};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Vec3 {
@@ -104,20 +107,20 @@ impl AddAssign for Vec3 {
 impl Div<f64> for Vec3 {
     type Output = Self;
 
-    fn div(self, rhs: f64) -> Self::Output {
+    fn div(self, other: f64) -> Self::Output {
         Self {
             e: [
-                self.e[0] * (1. / rhs),
-                self.e[1] * (1. / rhs),
-                self.e[2] * (1. / rhs),
+                self.e[0] * (1. / other),
+                self.e[1] * (1. / other),
+                self.e[2] * (1. / other),
             ],
         }
     }
 }
 
 impl DivAssign<f64> for Vec3 {
-    fn div_assign(&mut self, rhs: f64) {
-        *self *= 1. / rhs
+    fn div_assign(&mut self, other: f64) {
+        *self *= 1. / other
     }
 }
 
@@ -146,17 +149,17 @@ impl Mul for Vec3 {
 impl Mul<f64> for Vec3 {
     type Output = Self;
 
-    fn mul(self, rhs: f64) -> Self {
+    fn mul(self, other: f64) -> Self {
         Self {
-            e: [self.e[0] * rhs, self.e[1] * rhs, self.e[2] * rhs],
+            e: [self.e[0] * other, self.e[1] * other, self.e[2] * other],
         }
     }
 }
 
 impl MulAssign<f64> for Vec3 {
-    fn mul_assign(&mut self, rhs: f64) {
+    fn mul_assign(&mut self, other: f64) {
         *self = Self {
-            e: [self.e[0] * rhs, self.e[1] * rhs, self.e[2] * rhs],
+            e: [self.e[0] * other, self.e[1] * other, self.e[2] * other],
         }
     }
 }
@@ -182,6 +185,14 @@ impl Sub for Vec3 {
                 self.e[2] - other.e[2],
             ],
         }
+    }
+}
+
+impl Sum for Vec3 {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::new(), |acc, v| {
+            Self::from(acc.x() + v[0], acc.y() + v[1], acc.z() + v[2])
+        })
     }
 }
 

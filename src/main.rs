@@ -1,12 +1,13 @@
 mod camera;
 mod colour;
+mod image;
 mod material;
 mod objects;
 mod ray;
 mod utils;
 mod vec3;
-
 use camera::Camera;
+use image::{Image, Pixel};
 use material::material::{Dielectric, Lambertian, Material, Metal};
 use objects::{
     hittable::{HitRecord, Hittable},
@@ -14,10 +15,16 @@ use objects::{
     sphere::Sphere,
 };
 use ray::Ray;
-use std::io::prelude::*;
+use std::thread::{self, JoinHandle};
 use std::{fs::File, rc::Rc};
 use utils::{random_f64, INFINITY};
 use vec3::{unit_vector, Colour, Point3, Vec3};
+
+const ASPECT_RATIO: f64 = 3. / 2.;
+const IMAGE_WIDTH: i32 = 120;
+const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
+const SAMPLES_PER_PIXEL: i32 = 3;
+const MAX_DEPTH: i32 = 50;
 
 fn ray_colour(r: Ray, world: &impl Hittable, depth: i32) -> vec3::Colour {
     if depth <= 0 {
@@ -44,6 +51,31 @@ fn ray_colour(r: Ray, world: &impl Hittable, depth: i32) -> vec3::Colour {
     let unit_direction = unit_vector(r.direction());
     let t = 0.5 * (unit_direction.y() + 1.0);
     Colour::from(1.0, 1.0, 1.0) * (1.0 - t) + Colour::from(0.5, 0.7, 1.0) * t
+}
+
+fn calculate_pixel_colour(camera: &Camera, world: &impl Hittable, i: i32, j: i32) -> Colour {
+    let u = (i as f64 + random_f64(0., 1.)) / (IMAGE_WIDTH - 1) as f64;
+    let v = (j as f64 + random_f64(0., 1.)) / (IMAGE_HEIGHT - 1) as f64;
+    let ray = camera.get_ray(u, v);
+
+    ray_colour(ray, world, MAX_DEPTH)
+}
+
+fn create_image(camera: &Camera, world: &impl Hittable, samples_per_pixel: i32) -> Image {
+    let mut image = Image::new();
+    for row_num in 0..IMAGE_HEIGHT {
+        eprint!("\rRows remaining: {}/{} ", row_num, IMAGE_HEIGHT);
+        for pixel_num in 0..IMAGE_WIDTH {
+            let pixel_colour = (0..samples_per_pixel)
+                .map(|_| calculate_pixel_colour(&camera, world, pixel_num, row_num))
+                .sum();
+
+            let (r, g, b) = colour::rescale_colour(pixel_colour, samples_per_pixel);
+            image.pixels[row_num as usize][pixel_num as usize] = Pixel { r, g, b };
+        }
+    }
+
+    image
 }
 
 fn random_scene() -> HittableList {
@@ -109,12 +141,6 @@ fn random_scene() -> HittableList {
 }
 
 fn main() {
-    const ASPECT_RATIO: f64 = 3. / 2.;
-    const IMAGE_WIDTH: i32 = 120;
-    const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
-    const SAMPLES_PER_PIXEL: i32 = 3;
-    const MAX_DEPTH: i32 = 50;
-
     let world = random_scene();
     let camera = Camera::from(
         Point3::from(13., 2., 3.),
@@ -126,28 +152,8 @@ fn main() {
         10.,
     );
 
-    let mut file = File::create("result/result.ppm").expect("Unable to create file");
-    write!(file, "P3\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT).expect("Unable to write to file");
+    let file = File::create("result/result.ppm").expect("Unable to create file");
 
-    fn calculate_pixel_colour(camera: &Camera, world: &impl Hittable, i: i32, j: i32) -> Colour {
-        let u = (i as f64 + random_f64(0., 1.)) / (IMAGE_WIDTH - 1) as f64;
-        let v = (j as f64 + random_f64(0., 1.)) / (IMAGE_HEIGHT - 1) as f64;
-        let r = camera.get_ray(u, v);
-
-        ray_colour(r, world, MAX_DEPTH)
-    }
-
-    for row_num in (0..IMAGE_HEIGHT).rev() {
-        eprint!("\rRows remaining: {}/{} ", IMAGE_HEIGHT - row_num, IMAGE_HEIGHT);
-        for pixel_num in 0..IMAGE_WIDTH {
-            let mut pixel_colour = Colour::new();
-            for _ in 0..SAMPLES_PER_PIXEL {
-                pixel_colour += calculate_pixel_colour(&camera, &world, pixel_num, row_num);
-            }
-
-            let (r, g, b) = colour::rescale_colour(pixel_colour, SAMPLES_PER_PIXEL);
-            write!(file, "{} {} {}\n", r, g, b).expect("Unable to write to file");
-        }
-    }
-    eprintln!("\nDone.\n")
+    let image = create_image(&camera, &world, SAMPLES_PER_PIXEL);
+    image.write_image(file);
 }
